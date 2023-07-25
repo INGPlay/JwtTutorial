@@ -1,15 +1,28 @@
 package security.jwt.tutorial.config;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-
-import javax.servlet.FilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import security.jwt.tutorial.jwt.JwtAccessDeniedHandler;
+import security.jwt.tutorial.jwt.JwtAuthenticationEntryPoint;
+import security.jwt.tutorial.jwt.JwtFilter;
 
 @Configuration
+@EnableGlobalMethodSecurity(prePostEnabled = true)
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final JwtFilter jwtFilter;
+    private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
+    private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
     @Bean
     public WebSecurityCustomizer webSecurityCustomizer(){
@@ -23,15 +36,36 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
 
+        http
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeRequests(a -> a
-                        .antMatchers("/api/hello").permitAll()
+                        .antMatchers(
+                                "/api/hello",
+                                "/api/authenticate",
+                                "/api/signup"
+                        ).permitAll()
                         .anyRequest().authenticated()
+                )
+                .headers(h -> h
+                        .frameOptions()
+                        .sameOrigin()
+                )
+                .exceptionHandling(e -> e
+                        .authenticationEntryPoint(jwtAuthenticationEntryPoint)
+                        .accessDeniedHandler(jwtAccessDeniedHandler)
+                )
+                .sessionManagement(s -> s
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
         ;
 
 
         return http.build();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder(){
+        return new BCryptPasswordEncoder();
     }
 }
