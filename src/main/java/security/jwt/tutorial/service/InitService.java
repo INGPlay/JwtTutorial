@@ -47,11 +47,8 @@ public class InitService {
 
         HashSet<Authority> userAuthorities = new HashSet<>();
         userAuthorities.add(user);
-        user1.setAuthorities(userAuthorities);
-
+        user2.setAuthorities(userAuthorities);
 
         entityManager.persist(user2);
-
-        entityManager.flush();
     }
 }
